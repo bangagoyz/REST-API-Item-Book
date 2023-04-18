@@ -50,6 +50,7 @@ func main() {
 	r := gin.Default()
 
 	r.GET("/books", getBook)
+	r.GET("/books/:id", getOne)
 	r.POST("/books", createBook)
 	r.PUT("/books/:id", updateBook)
 	r.DELETE("/books/:id", deleteBook)
@@ -82,6 +83,35 @@ func getBook(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, results)
+}
+
+func getOne(ctx *gin.Context) {
+	var get []book
+	id := ctx.Param("id")
+
+	sqlStatement := `
+	SELECT * FROM book WHERE id = $1;`
+
+	res, err := db.Query(sqlStatement, id)
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer res.Close()
+
+	for res.Next() {
+		var Book book
+		err := res.Scan(&Book.ID, &Book.Title, &Book.Author, &Book.Desc)
+		if err != nil {
+			log.Fatal(err)
+		}
+		get = append(get, Book)
+	}
+	if err := res.Err(); err != nil {
+		log.Fatal(err)
+	}
+
+	ctx.JSON(http.StatusOK, get)
+
 }
 
 func createBook(c *gin.Context) {
@@ -171,7 +201,7 @@ func deleteBook(cok *gin.Context) {
 		return
 	}
 	cok.JSON(http.StatusOK, gin.H{
-		"message": fmt.Sprintf("Id = %s berhasil dihapus cokk", id),
+		"message": fmt.Sprintf("Id = %s berhasil dihapus", id),
 	})
 
 }
